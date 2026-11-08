@@ -1,0 +1,468 @@
+{
+  "tool": "Newman 6.2.1",
+  "date": "2026-10-26",
+  "requests": {
+    "total": 64,
+    "pending": 0,
+    "failed": 0
+  },
+  "assertions": {
+    "total": 72,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": 0,
+  "operations_covered": 39,
+  "operations_total": 39,
+  "note": "Sequential local run; not a load test. Authentication tokens and passwords omitted.",
+  "executions": [
+    {
+      "name": "01 Без входа ИПР закрыты",
+      "method": "GET",
+      "path": "/development-plans/",
+      "status": 401,
+      "milliseconds": 19
+    },
+    {
+      "name": "Вход: employee",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "milliseconds": 207
+    },
+    {
+      "name": "Кто вошёл: employee",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "milliseconds": 5
+    },
+    {
+      "name": "Вход: manager",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "milliseconds": 202
+    },
+    {
+      "name": "Кто вошёл: manager",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "milliseconds": 6
+    },
+    {
+      "name": "Вход: hr",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "milliseconds": 202
+    },
+    {
+      "name": "Кто вошёл: hr",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "milliseconds": 5
+    },
+    {
+      "name": "Вход: other",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 200,
+      "milliseconds": 203
+    },
+    {
+      "name": "Кто вошёл: other",
+      "method": "GET",
+      "path": "/auth/me",
+      "status": 200,
+      "milliseconds": 4
+    },
+    {
+      "name": "Неверный пароль",
+      "method": "POST",
+      "path": "/auth/login",
+      "status": 401,
+      "milliseconds": 212
+    },
+    {
+      "name": "Корень",
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "milliseconds": 5
+    },
+    {
+      "name": "Проверка запуска",
+      "method": "GET",
+      "path": "/health",
+      "status": 200,
+      "milliseconds": 3
+    },
+    {
+      "name": "Отделы со страницей",
+      "method": "GET",
+      "path": "/departments/",
+      "status": 200,
+      "milliseconds": 10
+    },
+    {
+      "name": "Отдел по ID",
+      "method": "GET",
+      "path": "/departments/1",
+      "status": 200,
+      "milliseconds": 5
+    },
+    {
+      "name": "Список компетенций",
+      "method": "GET",
+      "path": "/competencies/",
+      "status": 200,
+      "milliseconds": 9
+    },
+    {
+      "name": "Сотрудник не создаёт компетенцию",
+      "method": "POST",
+      "path": "/competencies/",
+      "status": 403,
+      "milliseconds": 5
+    },
+    {
+      "name": "HR создаёт компетенцию",
+      "method": "POST",
+      "path": "/competencies/",
+      "status": 201,
+      "milliseconds": 9
+    },
+    {
+      "name": "Компетенция по ID",
+      "method": "GET",
+      "path": "/competencies/11",
+      "status": 200,
+      "milliseconds": 6
+    },
+    {
+      "name": "PUT компетенции",
+      "method": "PUT",
+      "path": "/competencies/11",
+      "status": 200,
+      "milliseconds": 8
+    },
+    {
+      "name": "PATCH компетенции",
+      "method": "PATCH",
+      "path": "/competencies/11",
+      "status": 200,
+      "milliseconds": 5
+    },
+    {
+      "name": "Создать ИПР",
+      "method": "POST",
+      "path": "/development-plans/",
+      "status": 201,
+      "milliseconds": 20
+    },
+    {
+      "name": "Список ИПР",
+      "method": "GET",
+      "path": "/development-plans/",
+      "status": 200,
+      "milliseconds": 13
+    },
+    {
+      "name": "ИПР по ID",
+      "method": "GET",
+      "path": "/development-plans/11",
+      "status": 200,
+      "milliseconds": 7
+    },
+    {
+      "name": "Чужой ИПР закрыт",
+      "method": "GET",
+      "path": "/development-plans/11",
+      "status": 403,
+      "milliseconds": 5
+    },
+    {
+      "name": "Руководитель видит ИПР",
+      "method": "GET",
+      "path": "/development-plans/11",
+      "status": 200,
+      "milliseconds": 8
+    },
+    {
+      "name": "Руководитель не меняет чужой черновик",
+      "method": "PATCH",
+      "path": "/development-plans/11",
+      "status": 403,
+      "milliseconds": 7
+    },
+    {
+      "name": "Запрещён обход статусов",
+      "method": "PATCH",
+      "path": "/development-plans/11",
+      "status": 422,
+      "milliseconds": 3
+    },
+    {
+      "name": "PUT ИПР",
+      "method": "PUT",
+      "path": "/development-plans/11",
+      "status": 200,
+      "milliseconds": 40
+    },
+    {
+      "name": "PATCH ИПР",
+      "method": "PATCH",
+      "path": "/development-plans/11",
+      "status": 200,
+      "milliseconds": 8
+    },
+    {
+      "name": "Пустой черновик не отправляется",
+      "method": "PATCH",
+      "path": "/development-plans/11/submit",
+      "status": 400,
+      "milliseconds": 6
+    },
+    {
+      "name": "Добавить цель",
+      "method": "POST",
+      "path": "/development-plans/11/goals",
+      "status": 201,
+      "milliseconds": 11
+    },
+    {
+      "name": "Список целей",
+      "method": "GET",
+      "path": "/development-plans/11/goals",
+      "status": 200,
+      "milliseconds": 7
+    },
+    {
+      "name": "Цель по ID",
+      "method": "GET",
+      "path": "/development-plans/11/goals/10",
+      "status": 200,
+      "milliseconds": 7
+    },
+    {
+      "name": "PUT цели",
+      "method": "PUT",
+      "path": "/development-plans/11/goals/10",
+      "status": 200,
+      "milliseconds": 9
+    },
+    {
+      "name": "PATCH цели",
+      "method": "PATCH",
+      "path": "/development-plans/11/goals/10",
+      "status": 200,
+      "milliseconds": 10
+    },
+    {
+      "name": "Добавить мероприятие",
+      "method": "POST",
+      "path": "/development-plans/11/goals/10/activities",
+      "status": 201,
+      "milliseconds": 10
+    },
+    {
+      "name": "Список мероприятий",
+      "method": "GET",
+      "path": "/development-plans/11/goals/10/activities",
+      "status": 200,
+      "milliseconds": 7
+    },
+    {
+      "name": "Мероприятие по ID",
+      "method": "GET",
+      "path": "/development-plans/11/goals/10/activities/10",
+      "status": 200,
+      "milliseconds": 6
+    },
+    {
+      "name": "PUT мероприятия",
+      "method": "PUT",
+      "path": "/development-plans/11/goals/10/activities/10",
+      "status": 200,
+      "milliseconds": 9
+    },
+    {
+      "name": "PATCH мероприятия",
+      "method": "PATCH",
+      "path": "/development-plans/11/goals/10/activities/10",
+      "status": 200,
+      "milliseconds": 10
+    },
+    {
+      "name": "Добавить компетенцию в ИПР",
+      "method": "POST",
+      "path": "/development-plans/11/competencies",
+      "status": 201,
+      "milliseconds": 10
+    },
+    {
+      "name": "Изменить уровни",
+      "method": "PATCH",
+      "path": "/development-plans/11/competencies/11",
+      "status": 200,
+      "milliseconds": 11
+    },
+    {
+      "name": "Удалить связь с компетенцией",
+      "method": "DELETE",
+      "path": "/development-plans/11/competencies/11",
+      "status": 204,
+      "milliseconds": 9
+    },
+    {
+      "name": "Вернуть компетенцию в ИПР",
+      "method": "POST",
+      "path": "/development-plans/11/competencies",
+      "status": 201,
+      "milliseconds": 10
+    },
+    {
+      "name": "Используемая компетенция не удаляется",
+      "method": "DELETE",
+      "path": "/competencies/11",
+      "status": 400,
+      "milliseconds": 7
+    },
+    {
+      "name": "Отправить ИПР",
+      "method": "PATCH",
+      "path": "/development-plans/11/submit",
+      "status": 200,
+      "milliseconds": 10
+    },
+    {
+      "name": "Бейдж руководителя",
+      "method": "GET",
+      "path": "/development-plans/pending-count",
+      "status": 200,
+      "milliseconds": 7
+    },
+    {
+      "name": "Самосогласование запрещено",
+      "method": "PATCH",
+      "path": "/development-plans/11/approve",
+      "status": 403,
+      "milliseconds": 8
+    },
+    {
+      "name": "Отклонить с комментарием",
+      "method": "PATCH",
+      "path": "/development-plans/11/reject",
+      "status": 200,
+      "milliseconds": 10
+    },
+    {
+      "name": "Вернуть в черновик",
+      "method": "PATCH",
+      "path": "/development-plans/11/return",
+      "status": 200,
+      "milliseconds": 10
+    },
+    {
+      "name": "Повторно отправить",
+      "method": "PATCH",
+      "path": "/development-plans/11/submit",
+      "status": 200,
+      "milliseconds": 11
+    },
+    {
+      "name": "Утвердить",
+      "method": "PATCH",
+      "path": "/development-plans/11/approve",
+      "status": 200,
+      "milliseconds": 11
+    },
+    {
+      "name": "Выполнить последнее мероприятие",
+      "method": "PATCH",
+      "path": "/development-plans/11/complete-activity",
+      "status": 200,
+      "milliseconds": 12
+    },
+    {
+      "name": "Завершённый ИПР не удаляется",
+      "method": "DELETE",
+      "path": "/development-plans/11",
+      "status": 400,
+      "milliseconds": 7
+    },
+    {
+      "name": "Отдельный черновик для проверки удалений",
+      "method": "POST",
+      "path": "/development-plans/",
+      "status": 201,
+      "milliseconds": 8
+    },
+    {
+      "name": "Цель для удаления",
+      "method": "POST",
+      "path": "/development-plans/12/goals",
+      "status": 201,
+      "milliseconds": 9
+    },
+    {
+      "name": "Мероприятие для удаления",
+      "method": "POST",
+      "path": "/development-plans/12/goals/11/activities",
+      "status": 201,
+      "milliseconds": 9
+    },
+    {
+      "name": "DELETE мероприятия",
+      "method": "DELETE",
+      "path": "/development-plans/12/goals/11/activities/11",
+      "status": 204,
+      "milliseconds": 11
+    },
+    {
+      "name": "DELETE цели",
+      "method": "DELETE",
+      "path": "/development-plans/12/goals/11",
+      "status": 204,
+      "milliseconds": 8
+    },
+    {
+      "name": "DELETE ИПР",
+      "method": "DELETE",
+      "path": "/development-plans/12",
+      "status": 204,
+      "milliseconds": 6
+    },
+    {
+      "name": "Удалённый ИПР: 404",
+      "method": "GET",
+      "path": "/development-plans/12",
+      "status": 404,
+      "milliseconds": 5
+    },
+    {
+      "name": "Неиспользуемая компетенция для удаления",
+      "method": "POST",
+      "path": "/competencies/",
+      "status": 201,
+      "milliseconds": 6
+    },
+    {
+      "name": "DELETE компетенции",
+      "method": "DELETE",
+      "path": "/competencies/12",
+      "status": 204,
+      "milliseconds": 7
+    },
+    {
+      "name": "Проверка границ страницы",
+      "method": "GET",
+      "path": "/development-plans/",
+      "status": 422,
+      "milliseconds": 4
+    }
+  ]
+}

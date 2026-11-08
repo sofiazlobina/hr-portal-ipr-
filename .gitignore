@@ -1,0 +1,42 @@
+# === СЕКРЕТЫ И ОКРУЖЕНИЕ ===
+.env
+.env.local
+.env.production
+
+# === PYTHON ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# === ВИРТУАЛЬНОЕ ОКРУЖЕНИЕ ===
+.venv/
+venv/
+env/
+ENV/
+
+# === IDE ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# === ТЕСТЫ И ПОКРЫТИЕ ===
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# === ЛОГИ ===
+*.log
+logfile.txt
+
+# === ОС ===
+.DS_Store
+Thumbs.db
+desktop.ini

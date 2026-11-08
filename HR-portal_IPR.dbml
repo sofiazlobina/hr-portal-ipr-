@@ -1,0 +1,129 @@
+Project hr_ipr {
+  database_type: 'PostgreSQL'
+  Note: 'HR-портал: раздел индивидуальных планов развития.'
+}
+
+// Схема совпадает с HR-portal_IPR.sql. Семь таблиц.
+
+Table department {
+  id integer [pk, increment, not null]
+  name varchar(100) [not null, unique]
+  checks {
+    `btrim(name) <> ''` [name: 'ck_department_name']
+  }
+}
+
+Table app_user {
+  id integer [pk, increment, not null]
+  full_name varchar(150) [not null]
+  email varchar(254) [not null, unique]
+  password_hash varchar(255) [not null]
+  role varchar(20) [not null]
+  department_id integer [not null]
+  manager_id integer [null]
+  is_active boolean [not null, default: true]
+  deactivated_at timestamptz [null]
+  created_at timestamptz [not null, default: `now()`]
+  checks {
+    `btrim(full_name) <> ''` [name: 'ck_app_user_full_name']
+    `email = lower(btrim(email)) AND email <> ''` [name: 'ck_app_user_email']
+    `btrim(password_hash) <> ''` [name: 'ck_app_user_password_hash']
+    `role IN ('employee', 'manager', 'hr')` [name: 'ck_app_user_role']
+    `manager_id IS NULL OR manager_id <> id` [name: 'ck_app_user_manager']
+  }
+  indexes {
+    department_id [name: 'idx_app_user_department']
+    manager_id [name: 'idx_app_user_manager']
+  }
+}
+
+Table competency {
+  id integer [pk, increment, not null]
+  name varchar(100) [not null, unique]
+  description text [null]
+  checks {
+    `btrim(name) <> ''` [name: 'ck_competency_name']
+  }
+}
+
+Table development_plan {
+  id integer [pk, increment, not null]
+  employee_id integer [not null]
+  status varchar(20) [not null, default: 'draft']
+  start_date date [not null]
+  end_date date [not null]
+  manager_comment text [null]
+  created_at timestamptz [not null, default: `now()`]
+  updated_at timestamptz [not null, default: `now()`]
+  checks {
+    `status IN ('draft', 'pending', 'approved', 'rejected', 'completed')` [name: 'ck_development_plan_status']
+    `end_date >= start_date` [name: 'ck_development_plan_dates']
+    `status <> 'rejected' OR (manager_comment IS NOT NULL AND btrim(manager_comment) <> '')` [name: 'ck_development_plan_rejection']
+  }
+  indexes {
+    employee_id [name: 'idx_development_plan_employee']
+    status [name: 'idx_development_plan_status']
+  }
+}
+
+Table goal {
+  id integer [pk, increment, not null]
+  plan_id integer [not null]
+  description text [not null]
+  deadline date [not null]
+  checks {
+    `btrim(description) <> ''` [name: 'ck_goal_description']
+  }
+  indexes {
+    plan_id [name: 'idx_goal_plan']
+  }
+}
+
+Table activity {
+  id integer [pk, increment, not null]
+  goal_id integer [not null]
+  type varchar(20) [not null]
+  description text [not null]
+  deadline date [not null]
+  status varchar(20) [not null, default: 'planned']
+  completion_date date [null]
+  checks {
+    `type IN ('course', 'practice', 'reading')` [name: 'ck_activity_type']
+    `btrim(description) <> ''` [name: 'ck_activity_description']
+    `status IN ('planned', 'completed')` [name: 'ck_activity_status']
+    `(status = 'completed' AND completion_date IS NOT NULL) OR (status = 'planned' AND completion_date IS NULL)` [name: 'ck_activity_completion']
+  }
+  indexes {
+    goal_id [name: 'idx_activity_goal']
+  }
+}
+
+Table plan_competency {
+  plan_id integer [not null]
+  competency_id integer [not null]
+  current_level integer [not null]
+  target_level integer [not null]
+  checks {
+    `current_level BETWEEN 1 AND 5` [name: 'ck_plan_competency_current']
+    `target_level BETWEEN 1 AND 5` [name: 'ck_plan_competency_target']
+    `target_level >= current_level` [name: 'ck_plan_competency_growth']
+  }
+  indexes {
+    (plan_id, competency_id) [pk]
+    competency_id [name: 'idx_plan_competency_competency']
+  }
+}
+
+Ref fk_app_user_department_id: app_user.department_id > department.id [delete: restrict, update: no action]
+
+Ref fk_app_user_manager_id: app_user.manager_id > app_user.id [delete: set null, update: no action]
+
+Ref fk_development_plan_employee_id: development_plan.employee_id > app_user.id [delete: restrict, update: no action]
+
+Ref fk_goal_plan_id: goal.plan_id > development_plan.id [delete: cascade, update: no action]
+
+Ref fk_activity_goal_id: activity.goal_id > goal.id [delete: cascade, update: no action]
+
+Ref fk_plan_competency_plan_id: plan_competency.plan_id > development_plan.id [delete: cascade, update: no action]
+
+Ref fk_plan_competency_competency_id: plan_competency.competency_id > competency.id [delete: restrict, update: no action]

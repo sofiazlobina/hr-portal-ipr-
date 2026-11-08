@@ -1,34 +1,66 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
-
+from typing import Optional
 from app.database import get_db
 from app.utils.security import get_current_user
 from app.models.department import Department
 from app.schemas.department import DepartmentResponse
+from app.schemas.common import PaginatedResponse
 
-router = APIRouter(prefix="/departments", tags=["departments"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/departments",
+    tags=["departments"],
+    dependencies=[Depends(get_current_user)]
+)
+
+# Белый список полей для сортировки (защита от инъекций)
+ALLOWED_SORT_FIELDS = {"id", "name"}
 
 
 @router.get(
     "/",
-    response_model=List[DepartmentResponse],
-    summary="Получить список отделов",
-    description="Возвращает список всех отделов. Согласно ТЗ, создание и изменение отделов выполняется через начальные данные БД."
+    response_model=PaginatedResponse[DepartmentResponse],
+    summary="Получить список отделов с пагинацией и сортировкой",
+    description="Возвращает пагинированный список отделов. "
+                "Создание и изменение отделов выполняется через начальные данные БД."
 )
 def get_departments(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1, description="Номер страницы (начиная с 1)"),
+    per_page: int = Query(10, ge=1, le=100, description="Записей на странице (макс. 100)"),
+    sort_by: str = Query("id", description="Поле сортировки"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$", description="Направление сортировки"),
     db: Session = Depends(get_db)
 ):
-    departments = (
-        db.query(Department)
-        .order_by(Department.id)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-    return departments
+    # Валидация поля сортировки (белый список)
+    if sort_by not in ALLOWED_SORT_FIELDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недопустимое поле сортировки: {sort_by}. Разрешены: {ALLOWED_SORT_FIELDS}"
+        )
+
+    # Базовый запрос
+    query = db.query(Department)
+
+    # Сортировка
+    sort_column = getattr(Department, sort_by)
+    if sort_order == "desc":
+        sort_column = sort_column.desc()
+    query = query.order_by(sort_column)
+
+    # Метаданные (считаем ПОСЛЕ фильтров, но ДО пагинации)
+    total = query.count()
+    total_pages = (total + per_page - 1) // per_page
+
+    # Пагинация
+    items = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages
+    }
 
 
 @router.get(
@@ -41,14 +73,10 @@ def get_department(
     department_id: int,
     db: Session = Depends(get_db)
 ):
-    department = (
-        db.query(Department)
-        .filter(Department.id == department_id)
-        .first()
-    )
+    department = db.query(Department).filter(Department.id == department_id).first()
     if not department:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=404,
             detail=f"Отдел с id={department_id} не найден"
         )
     return department

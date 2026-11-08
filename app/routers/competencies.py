@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
+from typing import Optional
+
 from app.database import get_db
 from app.models import Competency, PlanCompetency, User
 from app.schemas.competency import CompetencyCreate, CompetencyUpdate, CompetencyResponse
+from app.schemas.common import PaginatedResponse 
 from app.utils.security import get_current_user
 from app.services.plans import fail, save
 
 router = APIRouter(prefix='/competencies', tags=['Competencies'])
+
+# Белый список полей для сортировки
+ALLOWED_SORT_FIELDS = {"id", "name"}
 
 
 def require_hr(user):
@@ -26,10 +32,59 @@ def unique_name(db, name, excluding=None):
         fail('Компетенция с таким названием уже существует')
 
 
-@router.get('/', response_model=list[CompetencyResponse], summary='Список компетенций')
-def get_competencies(skip: int = Query(0, ge=0), limit: int = Query(20, ge=1, le=100),
-                     db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return db.query(Competency).order_by(Competency.id).offset(skip).limit(limit).all()
+@router.get(
+    '/',
+    response_model=PaginatedResponse[CompetencyResponse], 
+    summary='Список компетенций с пагинацией, сортировкой и поиском',
+    description='Возвращает пагинированный список компетенций с возможностью поиска по названию и описанию.'
+)
+def get_competencies(
+    page: int = Query(1, ge=1, description="Номер страницы (начиная с 1)"),
+    per_page: int = Query(10, ge=1, le=100, description="Записей на странице (макс. 100)"),
+    sort_by: str = Query("id", description="Поле сортировки"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$", description="Направление сортировки"),
+    search: Optional[str] = Query(None, min_length=2, description="Поиск по названию и описанию"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Валидация поля сортировки
+    if sort_by not in ALLOWED_SORT_FIELDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недопустимое поле сортировки: {sort_by}. Разрешены: {ALLOWED_SORT_FIELDS}"
+        )
+
+    # 2. Базовый запрос
+    query = db.query(Competency)
+
+    # 3. Поиск ILIKE (регистр не важен)
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (Competency.name.ilike(search_pattern)) |
+            (Competency.description.ilike(search_pattern))
+        )
+
+    # 4. Сортировка
+    sort_column = getattr(Competency, sort_by)
+    if sort_order == "desc":
+        sort_column = sort_column.desc()
+    query = query.order_by(sort_column)
+
+    # 5. Метаданные (считаем ПОСЛЕ фильтров и поиска!)
+    total = query.count()
+    total_pages = (total + per_page - 1) // per_page
+
+    # 6. Пагинация
+    items = query.offset((page - 1) * per_page).limit(per_page).all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages
+    }
 
 
 @router.get('/{competency_id}', response_model=CompetencyResponse, summary='Компетенция по ID')

@@ -1,7 +1,13 @@
-from fastapi import APIRouter, Depends, Query, Response
+from datetime import date
+from typing import Optional
+from sqlalchemy import func
+
+from fastapi import APIRouter, Depends, Query, Response, HTTPException
 from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.models import Activity, Competency, DevelopmentPlan, Goal, PlanCompetency, User
+from app.schemas.common import PaginatedResponse
 from app.schemas.development_plan import (
     ActivityCompleteRequest, ActivityCreate, ActivityResponse, ActivityUpdate,
     DevelopmentPlanCreate, DevelopmentPlanReplace, DevelopmentPlanResponse, DevelopmentPlanUpdate,
@@ -14,31 +20,68 @@ from app.utils.security import get_current_user
 router = APIRouter(prefix='/development-plans', tags=['Development Plans'])
 
 
-@router.get('/', response_model=list[DevelopmentPlanResponse], summary='Свои ИПР и ИПР прямых подчинённых')
-def get_plans(skip: int = Query(0, ge=0), limit: int = Query(20, ge=1, le=100),
-              status_filter: PlanStatus | None = None, db: Session = Depends(get_db),
-              current_user: User = Depends(get_current_user)):
+# 1. СТАТИЧЕСКИЕ ПУТИ (должны быть ДО динамических путей с {plan_id})
+
+@router.get(
+    '/',
+    response_model=PaginatedResponse[DevelopmentPlanResponse],
+    summary='Свои ИПР и ИПР прямых подчинённых с фильтрацией, поиском и сортировкой'
+)
+def get_plans(
+    page: int = Query(1, ge=1, description="Номер страницы"),
+    per_page: int = Query(10, ge=1, le=100, description="Записей на странице"),
+    sort_by: str = Query("id", description="Поле сортировки"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$", description="Направление сортировки"),
+    status_filter: Optional[PlanStatus] = Query(None, description="Фильтр по статусу"),
+    start_date_from: Optional[date] = Query(None, description="Дата начала ИПР от"),
+    start_date_to: Optional[date] = Query(None, description="Дата начала ИПР до"),
+    search: Optional[str] = Query(None, min_length=2, description="Поиск по описанию целей или комментарию"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    ALLOWED_SORT_FIELDS = {"id", "status", "start_date", "created_at"}
+    
+    if sort_by not in ALLOWED_SORT_FIELDS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Недопустимое поле сортировки: {sort_by}. Разрешены: {ALLOWED_SORT_FIELDS}"
+        )
+
     query = db.query(DevelopmentPlan).filter(
-        DevelopmentPlan.employee_id.in_(service.visible_employee_ids(db, current_user)))
+        DevelopmentPlan.employee_id.in_(service.visible_employee_ids(db, current_user))
+    )
+
     if status_filter:
         query = query.filter(DevelopmentPlan.status == status_filter)
-    return service.loaded(query).order_by(DevelopmentPlan.id).offset(skip).limit(limit).all()
+    if start_date_from:
+        query = query.filter(DevelopmentPlan.start_date >= start_date_from)
+    if start_date_to:
+        query = query.filter(DevelopmentPlan.start_date <= start_date_to)
 
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.outerjoin(Goal).filter(
+            (DevelopmentPlan.manager_comment.ilike(search_pattern)) |
+            (Goal.description.ilike(search_pattern))
+        ).distinct()
 
-# Статический путь должен быть зарегистрирован до /{plan_id}.
-@router.get('/pending-count', summary='Количество ИПР на согласование')
-def get_pending_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != 'manager':
-        return {'count': 0}
-    ids = service.visible_employee_ids(db, current_user)
-    ids.remove(current_user.id)
-    return {'count': db.query(DevelopmentPlan).filter(
-        DevelopmentPlan.employee_id.in_(ids), DevelopmentPlan.status == 'pending').count()}
+    total = query.count()
+    total_pages = (total + per_page - 1) // per_page
 
+    sort_column = getattr(DevelopmentPlan, sort_by)
+    if sort_order == "desc":
+        sort_column = sort_column.desc()
+    query = query.order_by(sort_column)
 
-@router.get('/{plan_id}', response_model=DevelopmentPlanResponse, summary='Открыть ИПР с содержимым и прогрессом')
-def get_plan(plan_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return service.get_plan(db, plan_id, current_user)
+    items = service.loaded(query).offset((page - 1) * per_page).limit(per_page).all()
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages
+    }
 
 
 @router.post('/', response_model=DevelopmentPlanResponse, status_code=201, summary='Создать свой черновик ИПР')
@@ -50,6 +93,103 @@ def create_plan(plan: DevelopmentPlanCreate, db: Session = Depends(get_db),
     db.add(row)
     service.save(db)
     return row
+
+
+@router.get('/pending-count', summary='Количество ИПР на согласование')
+def get_pending_count(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.role != 'manager':
+        return {'count': 0}
+    ids = service.visible_employee_ids(db, current_user)
+    ids.remove(current_user.id)
+    return {'count': db.query(DevelopmentPlan).filter(
+        DevelopmentPlan.employee_id.in_(ids), DevelopmentPlan.status == 'pending').count()}
+
+
+@router.get('/statistics', summary='Общая статистика по ИПР')
+def get_statistics(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Возвращает общую статистику: количество планов по статусам и средний прогресс."""
+    ids = service.visible_employee_ids(db, current_user)
+    
+    status_counts = db.query(
+        DevelopmentPlan.status,
+        func.count(DevelopmentPlan.id).label('count')
+    ).filter(
+        DevelopmentPlan.employee_id.in_(ids)
+    ).group_by(DevelopmentPlan.status).all()
+    
+    all_activities = db.query(Activity).join(Goal).join(DevelopmentPlan).filter(
+        DevelopmentPlan.employee_id.in_(ids)
+    ).all()
+    
+    total_activities = len(all_activities)
+    completed_activities = sum(1 for a in all_activities if a.status == 'completed')
+    avg_progress = round(100 * completed_activities / total_activities, 2) if total_activities > 0 else 0
+    
+    return {
+        'total_plans': sum(row.count for row in status_counts),
+        'by_status': {row.status: row.count for row in status_counts},
+        'avg_progress_percent': avg_progress,
+        'total_activities': total_activities,
+        'completed_activities': completed_activities
+    }
+
+
+@router.get('/reports/top-employees', summary='Топ-5 сотрудников по прогрессу выполнения ИПР')
+def get_top_employees_report(
+    limit: int = Query(5, ge=1, le=20, description="Количество сотрудников в топе"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Отчёт: топ-N сотрудников по среднему прогрессу выполнения ИПР."""
+    if current_user.role not in ('manager', 'hr'):
+        service.fail('Только руководители и HR могут просматривать этот отчёт', 403)
+    
+    if current_user.role == 'manager':
+        ids = service.visible_employee_ids(db, current_user)
+        if current_user.id in ids:
+            ids.remove(current_user.id)
+    else:
+        ids = [row[0] for row in db.query(User.id).filter(User.is_active.is_(True)).all()]
+    
+    employees_stats = []
+    for emp_id in ids:
+        plans = db.query(DevelopmentPlan).filter(DevelopmentPlan.employee_id == emp_id).all()
+        total_plans = len(plans)
+        
+        if total_plans == 0:
+            continue
+        
+        all_activities = []
+        for plan in plans:
+            for goal in plan.goals:
+                all_activities.extend(goal.activities)
+        
+        total_activities = len(all_activities)
+        completed = sum(1 for a in all_activities if a.status == 'completed')
+        progress = round(100 * completed / total_activities, 2) if total_activities > 0 else 0
+        
+        employee = db.get(User, emp_id)
+        employees_stats.append({
+            'employee_id': emp_id,
+            'full_name': employee.full_name,
+            'total_plans': total_plans,
+            'total_activities': total_activities,
+            'completed_activities': completed,
+            'progress_percent': progress
+        })
+    
+    employees_stats.sort(key=lambda x: x['progress_percent'], reverse=True)
+    return employees_stats[:limit]
+
+
+# 2. ДИНАМИЧЕСКИЕ ПУТИ (с {plan_id})
+
+@router.get('/{plan_id}', response_model=DevelopmentPlanResponse, summary='Открыть ИПР с содержимым и прогрессом')
+def get_plan(plan_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return service.get_plan(db, plan_id, current_user)
 
 
 @router.patch('/{plan_id}', response_model=DevelopmentPlanResponse, summary='Изменить период своего черновика')

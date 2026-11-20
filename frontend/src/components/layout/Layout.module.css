@@ -1,0 +1,16 @@
+.shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.header { background: #182d2a; color: #f4faf7; }
+.headerInner { max-width: 1240px; min-height: 74px; margin: auto; padding: .85rem clamp(1rem, 4vw, 3rem); display: flex; gap: .75rem 1.7rem; align-items: center; flex-wrap: wrap; }
+.brand { display: inline-flex; align-items: center; gap: .6rem; white-space: nowrap; font-weight: 750; text-decoration: none; }
+.brand span { background: #d7eea8; border-radius: .45rem; padding: .35rem .48rem; color: #182d2a; font-size: .8rem; }
+.header nav { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+.header nav a { white-space: nowrap; color: #dae8e1; padding: .45rem .65rem; font-size: .9rem; border-radius: .4rem; text-decoration: none; }
+.header nav a:hover, .header nav a[aria-current="page"] { color: #fff; background: #304742; }
+.main { flex: 1; width: 100%; max-width: 1240px; margin: auto; padding: clamp(1.4rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem); }
+.footer { border-top: 1px solid var(--border); color: var(--muted); padding: 1.15rem; font-size: .875rem; text-align: center; }
+
+.session { margin-left: auto; display: flex; align-items: center; gap: .65rem; font-size: .875rem; }
+.identity small { margin-left: .25rem; color: #d7eea8; font-size: .82rem; }
+.session a, .session button { padding: .4rem .65rem; border-radius: .4rem; border: 1px solid #62776d; background: transparent; color: #f4faf7; font: inherit; text-decoration: none; cursor: pointer; }
+.session a:hover, .session button:hover { background: #304742; }
+@media (max-width: 680px) { .session { margin-left: 0; } .header nav { order: 1; width: 100%; } }

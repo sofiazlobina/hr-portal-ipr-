@@ -1,5 +1,6 @@
 """Глобальные обработчики исключений"""
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from app.exceptions.custom_exceptions import BaseAppException
@@ -33,7 +34,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "detail": "Ошибка валидации входных данных",
             "error_code": "VALIDATION_ERROR",
-            "errors": exc.errors()
+            "errors": jsonable_encoder(exc.errors())
         }
     )
 

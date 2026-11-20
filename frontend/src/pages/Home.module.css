@@ -1,0 +1,8 @@
+.intro { padding: clamp(1.6rem, 5vw, 4rem); border-radius: .9rem; background: linear-gradient(125deg, #193e34, #244c3d 65%, #375e47); color: #fff; }
+.intro h1 { max-width: 620px; font-size: clamp(2rem, 5.5vw, 3.8rem); letter-spacing: -.05em; }
+.intro p { margin: .85rem 0 0; max-width: 480px; color: #e5f1e7; }
+.sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 1rem; margin-top: 1rem; }
+.sections a { display: block; padding: 1.35rem; text-decoration: none; background: white; border: 1px solid var(--border); border-radius: .75rem; }
+.sections a:hover { border-color: #739784; }
+.sections h2 { display: flex; justify-content: space-between; gap: .75rem; }
+.sections p { margin: .5rem 0 0; color: var(--muted); }

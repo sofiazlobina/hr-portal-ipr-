@@ -72,6 +72,8 @@ def get_plans(
     if sort_order == "desc":
         sort_column = sort_column.desc()
     query = query.order_by(sort_column)
+    if sort_by != "id":
+        query = query.order_by(DevelopmentPlan.id)
 
     items = service.loaded(query).offset((page - 1) * per_page).limit(per_page).all()
 

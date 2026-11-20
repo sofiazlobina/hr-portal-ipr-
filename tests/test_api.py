@@ -106,7 +106,7 @@ def test_visibility_and_mutation(client,people,headers):
     assert client.get(base,headers=headers['manager']).status_code==200
     for who in ['other','other_manager','hr']:
         assert client.get(base,headers=headers[who]).status_code==403
-        assert not client.get('/development-plans/',headers=headers[who]).json()
+        assert client.get('/development-plans/',headers=headers[who]).json()['items'] == []
     assert client.patch(base,headers=headers['manager'],json={'end_date':END}).status_code==403
     assert client.delete(base,headers=headers['manager']).status_code==403
     assert client.patch(base+'/submit',headers=headers['manager']).status_code==403
@@ -230,7 +230,7 @@ def test_lifecycle_reject_return_approve_complete(client,people,headers,db):
     p,g,a,c=content(client,people,headers,db); base=f'/development-plans/{p}'
     assert client.patch(base+'/submit',headers=headers['employee']).json()['status']=='pending'
     assert client.get('/development-plans/pending-count',headers=headers['manager']).json()['count']==1
-    assert client.get('/development-plans/?status_filter=pending',headers=headers['manager']).json()[0]['id']==p
+    assert client.get('/development-plans/?status_filter=pending',headers=headers['manager']).json()['items'][0]['id']==p
     assert client.patch(base+'/approve',headers=headers['employee'],json={}).status_code==403
     assert client.patch(base+'/reject',headers=headers['manager'],json={'manager_comment':' '}).status_code==422
     assert client.patch(base+'/reject',headers=headers['manager'],json={'manager_comment':'Revise'}).json()['status']=='rejected'
@@ -305,11 +305,11 @@ def test_manager_change_and_inactive_subordinates(client,people,headers,db):
     assert client.patch(base+'/approve',headers=headers['other_manager'],json={}).status_code==200
     people['employee'].is_active=False; db.commit()
     assert client.get(base,headers=headers['other_manager']).status_code==403
-    assert not client.get('/development-plans/',headers=headers['other_manager']).json()
+    assert client.get('/development-plans/',headers=headers['other_manager']).json()['items'] == []
 
 
-@pytest.mark.parametrize('url',['/development-plans/?skip=-1','/development-plans/?limit=0',
-    '/development-plans/?limit=101','/competencies/?skip=-1','/departments/?limit=0',
+@pytest.mark.parametrize('url',['/development-plans/?page=0','/development-plans/?per_page=0',
+    '/development-plans/?per_page=101','/competencies/?page=0','/departments/?per_page=0',
     '/development-plans/?status_filter=unknown'])
 def test_pagination_validation(client,people,headers,url):
     assert client.get(url,headers=headers['employee']).status_code==422

@@ -1,0 +1,14 @@
+.button { display: inline-flex; justify-content: center; align-items: center; gap: .35rem; min-height: 2.35rem; padding: .48rem .82rem; border: 1px solid transparent; border-radius: .45rem; font: inherit; font-size: .875rem; font-weight: 700; line-height: 1.25; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.primary { background: #1e5140; color: white; }
+.primary:hover { background: #163d31; }
+.secondary { background: white; color: #244638; border-color: #cbd8cf; }
+.secondary:hover { background: #eff5f0; }
+.danger { background: #fff6f5; color: #982c35; border-color: #efd0d1; }
+.danger:hover { background: #fbe8e8; }
+.button:disabled { opacity: .55; cursor: not-allowed; }
+.field { display: grid; gap: .32rem; min-width: 0; }
+.field label { font-size: .865rem; font-weight: 700; }
+.field input, .field select, .field textarea { width: 100%; min-height: 2.5rem; padding: .48rem .65rem; background: white; border: 1px solid #bdcdc3; border-radius: .42rem; color: var(--ink); font: inherit; }
+.field textarea { min-height: 6rem; resize: vertical; }
+.field [aria-invalid="true"] { border-color: #aa3540; }
+.fieldError { font-size: .83rem; color: #982c35; }

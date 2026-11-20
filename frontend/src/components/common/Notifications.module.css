@@ -1,0 +1,6 @@
+.stack { position: fixed; z-index: 5; right: 1rem; bottom: 1rem; width: min(23rem, calc(100% - 2rem)); display: grid; gap: .45rem; }
+.toast { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem .9rem; border-radius: .55rem; font-size: .9rem; color: #fff; box-shadow: 0 8px 24px #172e2629; }
+.success { background: #235540; }
+.error { background: #89343e; }
+.info { background: #2c4744; }
+.toast button { padding: 0 .2rem; background: transparent; color: inherit; border: 0; font: inherit; font-size: 1.2rem; cursor: pointer; }
